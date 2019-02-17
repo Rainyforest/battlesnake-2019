@@ -1,4 +1,3 @@
-const cool = require('cool-ascii-faces')
 const bodyParser = require('body-parser')
 const express = require('express')
 const logger = require('morgan')
@@ -40,7 +39,7 @@ app.post('/move', (request, response) => {
 
   // Response data
   const data = {
-    move: 'up', // one of: ['up','down','left','right']
+    move: 'down', // one of: ['up','down','left','right']
   }
   return response.json(data)
 })
@@ -60,7 +59,6 @@ app.post('/ping', (request, response) => {
 app.use('*', fallbackHandler)
 app.use(notFoundHandler)
 app.use(genericErrorHandler)
-app.get('/cool', (req, res) => res.send(cool()))
 app.listen(app.get('port'), () => {
   console.log('Server listening on port %s', app.get('port'))
 })

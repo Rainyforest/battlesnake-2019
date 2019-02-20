@@ -27,21 +27,56 @@ app.post('/start', (request, response) => {
 
   // Response data
   const data = {
-    color: '#FF0000',
+    color: '#000000',
   }
 
   return response.json(data)
 })
 
-// Handle POST request to '/move'
-app.post('/move', (request, response) => {
-  // NOTE: Do something here to generate your move
+function avoidWall(move_dir,head,map_width,map_height){
+  return (head.x == 0 && move_dir == 3
+  || head.x == map_width-1 && move_dir ==1
+  || head.y == 0 && move_dir == 0
+  || head.y == map_height-1 && move_dir == 2)
+  ? (move_dir+1)%4:move_dir;
+}
 
+// Handle POST request to '/move'
+var move_dir = 0;
+var move = {move:"up"};
+
+app.post('/move', (request, response) => {
+
+  console.log(request.body.you.body[0]);
+  head =  request.body.you.body[0];
+  console.log(head);
+  map_width = request.body.board.width;
+  map_height = request.body.board.height;
+  food_list = request.body.board.food;
+  enemy_list = request.body.board.snakes;
   // Response data
-  const data = {
-    move: 'right', // one of: ['up','down','left','right']
+
+  console.log(food_list);
+  move_dir = avoidWall(move_dir,head,map_width,map_height);
+
+  switch(move_dir) {
+    case 0:
+      move = {move:"up"};
+      break;
+    case 1:
+      move = {move:"right"};
+      break;
+    case 2:
+      move = {move:"down"};
+      break;
+    case 3:
+      move = {move:"left"};
+      break;
+    default:
+      move = {move:"up"};
   }
-  return response.json(data)
+
+  return response.json(move);
 })
 
 app.post('/end', (request, response) => {

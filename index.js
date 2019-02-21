@@ -33,7 +33,7 @@ app.post('/start', (request, response) => {
 })
 
 
-var move_dir = 0; //initialize move direction
+
 
 /*********************************************
 * If about to hit the wall, turn right.
@@ -192,37 +192,46 @@ function search(start,end,grid) {
       for(var i=0; i < neighbors.length; i++) {
           var neighbor = neighbors[i];
 
-          if(neighbor.state==0) {//|| neighbor.isWall()++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          if(neighbor.state==0||isWall(neighbor,grid)) {//|| neighbor.isWall()++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
               // Not a valid node to process, skip to next neighbor.
               continue;
           }
           // The g score is the shortest distance from start to current node.
           // We need to check if the path we have arrived at this neighbor is the shortest one we have seen yet.
-          var g_score = currentNode.g + neighbor.cost;
-          if(neighbor.state==-1 || neighbor.state==1 || g_score < neighbor.g) {
-              // Found an optimal (so far) path to this node.  Take score for node to see how good it is.
-              neighbor.parent = currentNode;
-              neighbor.h = getDistance(neighbor,end);
-              neighbor.g = g_score;
-              neighbor.f = neighbor.g + neighbor.h;
-              if (neighbor.state==-1) {
-                  // Pushing to list will put it in proper place based on the 'f' value.
-                  neighbor.state = 1;
-                  openList.push(neighbor);
-              }
-              else {
-                  // Already seen the node, but since it has been rescored we need to reorder it in the list
-                  //openHeap.rescoreElement(neighbor);
-                  //这块comment掉了还没写
-              }
+          var gScore = currentNode.g + neighbor.cost;
+          var better_gScore = false;
+          if(neighbor.state==-1) {
+          // This the the first time we have arrived at this node, it must be the best
+          // Also, we need to take the h (heuristic) score since we haven't done so yet
+            neighbor.state = 1;
+            better_gScore = true;
+            neighbor.h = getDistance(neighbor,end);
+            openList.push(neighbor);
+          }
+          else if(gScore < neighbor.g) {
+            // We have already seen the node, but last time it had a worse g (distance from start)
+            better_gScore = true;
+          }
+          if(better_gScore) {
+            // Found an optimal (so far) path to this node.   Store info on how we got here and
+            //  just how good it really is...
+            neighbor.parent = currentNode;
+            neighbor.g = gScore;
+            neighbor.f = neighbor.g + neighbor.h;
           }
       }//end for
   }//end while
   // No result was found - empty array signifies failure to find path.
   return [];
 }
-
-
+function pathToVector(path,head){
+  var vector_list = [];
+  path.unshift(head);
+  for(var i = 0; i<path.length-1; i++ ){
+    vector_list.push(getDirection(path[i],path[i+1]));
+  }
+  return vector_list;
+}
 /*********************************************
 * get four neighbors of a node. (could be simplified later.)
 *********************************************/
@@ -248,36 +257,46 @@ function getNeighbors(node,grid) {
     }
     return neighbor_list;
 }
-
+var move_dir = 0; //initialize move direction
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
 
-  head =  request.body.you.body[0];
+  var head =  request.body.you.body[0];
 
-  map_width = request.body.board.width;
-  map_height = request.body.board.height;
-  food_list = request.body.board.food;
-  enemy_list = request.body.board.snakes;
+  var map_width = request.body.board.width;
+  var map_height = request.body.board.height;
+  var food_list = request.body.board.food;
+  var enemy_list = request.body.board.snakes;
+  var turn_num = request.body.turn;
+
   // Response data
-  console.log("head---");
+  console.log("head:");
   console.log(head);
 
   var the_food = findNearestFood(food_list,head);
-  console.log("food---");
+  console.log("food:");
   console.log(the_food);
 
   var grid = initGrid(map_width,map_height);
   var path = search(head,the_food,grid);
-  var new_dir = getDirection(head,path[0]);
+  if(path.length>0){
+    var new_dir = getDirection(head,path[0]);
+  }
+    console.log("path:");
+    console.log(pathToVector(path,head));
+    console.log("=================================")
+  if(turn_num!=0){
+      move_dir = new_dir==(move_dir+2)%4?move_dir:new_dir;
+  }
 
-  move_dir = new_dir==(move_dir+2)%4?move_dir:new_dir;
   move_dir = avoidWall(move_dir,head,map_width,map_height);
+
   return response.json(updateMoveDirection(move_dir));
 })
 
 app.post('/end', (request, response) => {
   // NOTE: Any cleanup when a game is complete.
-  console.log("###############################");
+  console.log("################################################################");
   return response.json({})
 })
 

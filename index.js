@@ -38,19 +38,64 @@ app.post('/start', (request, response) => {
 /*********************************************
 * If about to hit the wall, turn right.
 *********************************************/
-function avoidWall(move_dir,head,map_width,map_height){
-  return (head.x == 0 && move_dir == 3
-  || head.x == map_width-1 && move_dir ==1
-  || head.y == 0 && move_dir == 0
-  || head.y == map_height-1 && move_dir == 2)
-  ? (move_dir+1)%4:move_dir;
-}
 
+function nextGrid(move_dir,head){
+  var next;
+  switch (move_dir) {
+    case 0:
+      next = {
+        x:head.x,
+        y:head.y-1
+      }
+      break;
+    case 1:
+      next = {
+        x:head.x+1,
+        y:head.y
+      }
+      break;
+    case 2:
+      next = {
+        x:head.x,
+        y:head.y+1
+      }
+      break;
+    case 3:
+      next = {
+        x:head.x-1,
+        y:head.y
+      }
+      break;
+    default:
+  }
+  return next;
+}
 function getDistance(a,b){
   return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 }
 
+/*********************************************
+* Determine if a node is out of the map (which is a wall).
+*********************************************/
+function isObstacle(a,mysnake,grid){
+  var ifObstacle = (a.x<0||a.x>grid.length-1||a.y<0||a.y>grid.length-1)?true:false;  //if wall
+  /* if snake */
+  for (var i=0;i<mysnake.length;i++){
+    if(mysnake[i].x==a.x&&mysnake[i].y==a.y)ifObstacle=true;
+  }
+  return ifObstacle;
+}
 
+function avoidObstacle(move_dir,head,mysnake,grid){
+  if(isObstacle(nextGrid(move_dir,head),mysnake,grid)){
+    move_dir = (move_dir+1)%4;
+  }
+  return move_dir;
+}
+
+// function decideFrontier(move_dir,head,gri){
+//
+// }
 /*********************************************
 * Convert number 0 - 3 to direction [up, right, down, left] respectively
 *********************************************/
@@ -142,17 +187,23 @@ function samePosition(a,b){
   return(a.x==b.x && a.y==b.y);
 }
 
-/*********************************************
-* Determine if a node is out of the map (which is a wall).
-*********************************************/
-function isWall(a,grid){
-  return(a.x<0||a.x>grid.length-1||a.y<0||a.y>grid.length-1)?true:false;
+
+// function isWall(a,grid){
+//   return (a.x < 0 || a.x > grid.length-1|| a.y < 0 || a.y > grid.length-1);
+// }
+
+
+
+function printNeighbors(neighbors){
+  for(var i = 0; i<neighbors.length-1; i++ ){
+    console.log("neighbor: "+ i + "\t{x: "+neighbors[i].x +"\ty: "+neighbors[i].y+"}");
+  }
 }
 
 /*********************************************
 * Main function to implement A* algorithm
 *********************************************/
-function search(start,end,grid) {
+function search(start,end,mysnake,grid) {
   var openList = [];
   grid[start.x][start.y] = {
               x:start.x,
@@ -165,7 +216,7 @@ function search(start,end,grid) {
               parent:null
             };
   openList.push(grid[start.x][start.y]);
-
+  //console.log("$$$$$$$$$$$$$$$");
   while(openList.length > 0) {
       // Grab the lowest f(x) to process next.  Heap keeps this sorted for us.
       var low_index = 0;
@@ -173,9 +224,10 @@ function search(start,end,grid) {
         if(openList[i].f <= openList[low_index].f) { low_index = i; }
       }
       var currentNode = openList[low_index];
-      openList.splice(low_index, 1);
+      openList.splice(low_index, 1); // remove current node from openList.
       //End case -- result has been found, return the traced path.
       if(samePosition(currentNode,end)) {
+          console.log("FINISHHHHHHHHH");
           var curr = currentNode;
           var path = [];
           while(curr.parent) {
@@ -184,15 +236,18 @@ function search(start,end,grid) {
           }
           return path.reverse();
       }
+      console.log('*****************');
       // Normal case -- move currentNode from open to closed, process each of its neighbors.
       currentNode.state = 0;
       // Find all neighbors for the current node.
       var neighbors = getNeighbors(currentNode,grid);
-
+      console.log("neighbors:");
+      printNeighbors(neighbors);
       for(var i=0; i < neighbors.length; i++) {
           var neighbor = neighbors[i];
 
-          if(neighbor.state==0||isWall(neighbor,grid)) {//|| neighbor.isWall()++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          if(neighbor.state==0||isObstacle(neighbor,mysnake,grid)) {//
+              neighbor.state==0;
               // Not a valid node to process, skip to next neighbor.
               continue;
           }
@@ -240,29 +295,42 @@ function getNeighbors(node,grid) {
     var x = node.x;
     var y = node.y;
     // Left
-    if(grid[x-1][y].state!=0) {
-        neighbor_list.push(grid[x-1][y]);
+    if(x>0){
+      if(grid[x-1][y].state!=0 ) {
+          neighbor_list.push(grid[x-1][y]);
+      }
     }
+
     // Right
-    if(grid[x+1][y].state!=0) {
-        neighbor_list.push(grid[x+1][y]);
+    if(x<grid.length-1){
+      if(grid[x+1][y].state!=0 ) {
+          neighbor_list.push(grid[x+1][y]);
+      }
     }
+
     // Up
-    if(grid[x][y-1].state!=0) {
-        neighbor_list.push(grid[x][y-1]);
+    if(y>0){
+      if(grid[x][y-1].state!=0 ) {
+          neighbor_list.push(grid[x][y-1]);
+      }
     }
+
     // Down
-    if(grid[x][y+1].state!=0) {
-        neighbor_list.push(grid[x][y+1]);
+    if(y<grid.length-1){
+      if(grid[x][y+1].state!=0 ) {
+          neighbor_list.push(grid[x][y+1]);
+      }
     }
+
     return neighbor_list;
 }
 var move_dir = 0; //initialize move direction
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
 
-  var head =  request.body.you.body[0];
 
+  var mysnake = request.body.you.body;
+  var head = mysnake[0];
   var map_width = request.body.board.width;
   var map_height = request.body.board.height;
   var food_list = request.body.board.food;
@@ -278,24 +346,24 @@ app.post('/move', (request, response) => {
   console.log(the_food);
 
   var grid = initGrid(map_width,map_height);
-  var path = search(head,the_food,grid);
+
+  var path = search(head,the_food,mysnake,grid);
+  var new_dir = move_dir;
   if(path.length>0){
-    var new_dir = getDirection(head,path[0]);
+    new_dir = getDirection(head,path[0]);
   }
     console.log("path:");
     console.log(pathToVector(path,head));
-    console.log("=================================")
-  if(turn_num!=0){
-      move_dir = new_dir==(move_dir+2)%4?move_dir:new_dir;
-  }
-
-  move_dir = avoidWall(move_dir,head,map_width,map_height);
+    console.log("=========================================")
+  move_dir = new_dir==(move_dir+2)%4?move_dir:new_dir;
+  move_dir = avoidObstacle(move_dir,head,mysnake,grid);
 
   return response.json(updateMoveDirection(move_dir));
 })
 
 app.post('/end', (request, response) => {
   // NOTE: Any cleanup when a game is complete.
+
   console.log("################################################################");
   return response.json({})
 })

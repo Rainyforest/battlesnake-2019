@@ -92,21 +92,6 @@ function isObstacle(a,mysnake,grid){
 }
 
 function avoidObstacle(move_dir,head,mysnake,grid){
-  // var frontier = [0,1,2,3];
-  // var new_frontier=[];
-  // if(isObstacle(nextGrid(move_dir,head),mysnake,grid)){
-  //   frontier.splice(frontier.indexOf((move_dir+2)%4),1);
-  //   frontier.splice(frontier.indexOf(move_dir),1);
-  //   if(!isObstacle(nextGrid(frontier[0],head),mysnake,grid)){
-  //     new_frontier.push(frontier[0]);
-  //   }
-  //   if(!isObstacle(nextGrid(frontier[1],head),mysnake,grid)){
-  //     new_frontier.push(frontier[1]);
-  //   }
-  //
-  //   return new_frontier.length>0?new_frontier[0]:move_dir;
-  // }
-
   if(isObstacle(nextGrid(move_dir,head),mysnake,grid)) {
     if (isObstacle(rightGrid(move_dir,head),mysnake,grid)){
       return (move_dir+3)%4;
@@ -116,9 +101,6 @@ function avoidObstacle(move_dir,head,mysnake,grid){
   }else{
     return move_dir;
   }
-  // var right = ;
-  // return (next && right) ? (move_dir+3)%4:
-  //        !right ? (move_dir+1)%4:move_dir;
 }
 
 
@@ -388,7 +370,7 @@ app.post('/move', (request, response) => {
 app.post('/end', (request, response) => {
   // NOTE: Any cleanup when a game is complete.
 
-  console.log("################################################################");
+  //console.log("################################################################");
   return response.json({})
 })
 

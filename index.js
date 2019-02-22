@@ -74,6 +74,11 @@ function getDistance(a,b){
   return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 }
 
+function rightGrid(move_dir,head){
+  return nextGrid((move_dir+1)%4,head);
+}
+
+
 /*********************************************
 * Determine if a node is out of the map (which is a wall).
 *********************************************/
@@ -87,15 +92,36 @@ function isObstacle(a,mysnake,grid){
 }
 
 function avoidObstacle(move_dir,head,mysnake,grid){
-  if(isObstacle(nextGrid(move_dir,head),mysnake,grid)){
-    move_dir = (move_dir+1)%4;
+  // var frontier = [0,1,2,3];
+  // var new_frontier=[];
+  // if(isObstacle(nextGrid(move_dir,head),mysnake,grid)){
+  //   frontier.splice(frontier.indexOf((move_dir+2)%4),1);
+  //   frontier.splice(frontier.indexOf(move_dir),1);
+  //   if(!isObstacle(nextGrid(frontier[0],head),mysnake,grid)){
+  //     new_frontier.push(frontier[0]);
+  //   }
+  //   if(!isObstacle(nextGrid(frontier[1],head),mysnake,grid)){
+  //     new_frontier.push(frontier[1]);
+  //   }
+  //
+  //   return new_frontier.length>0?new_frontier[0]:move_dir;
+  // }
+
+  if(isObstacle(nextGrid(move_dir,head),mysnake,grid)) {
+    if (isObstacle(rightGrid(move_dir,head),mysnake,grid)){
+      return (move_dir+3)%4;
+    }else{
+      return (move_dir+1)%4;
+    }
+  }else{
+    return move_dir;
   }
-  return move_dir;
+  // var right = ;
+  // return (next && right) ? (move_dir+3)%4:
+  //        !right ? (move_dir+1)%4:move_dir;
 }
 
-// function decideFrontier(move_dir,head,gri){
-//
-// }
+
 /*********************************************
 * Convert number 0 - 3 to direction [up, right, down, left] respectively
 *********************************************/
@@ -355,9 +381,7 @@ app.post('/move', (request, response) => {
     console.log("path:");
     console.log(pathToVector(path,head));
     console.log("=========================================")
-  move_dir = new_dir==(move_dir+2)%4?move_dir:new_dir;
-  move_dir = avoidObstacle(move_dir,head,mysnake,grid);
-
+  move_dir = avoidObstacle(new_dir,head,mysnake,grid);
   return response.json(updateMoveDirection(move_dir));
 })
 

@@ -105,33 +105,50 @@ function isObstacle(a,mySnake,otherSnakeList,grid){
 
 function senseEnemyHead(mySnake,otherSnakeList,grid){
     var dangerous_dir_list=[];
-    for(var dir=0;dir<4;dir++){
-      var a = nextGrid(dir,nextGrid(dir,mySnake[0]));
-      var dir_dangerous = false;
-      for(let j=0;j<otherSnakeList.length;j++){
-        let snake = otherSnakeList[j].body;
-        if(snake[0].x==a.x&&snake[0].y==a.y)dir_dangerous=true;
-      }
-      if(dir_dangerous)dangerous_dir_list.push(dir);
-    }
+    for(let j=0;j<otherSnakeList.length;j++){
+      let enemy_head = otherSnakeList[j].body[0];
+      let my_head  = mySnake[0];
 
+
+      if(getDistance(my_head,enemy_head)==2){
+
+        var delta_x=enemy_head.x-my_head.x;
+        var delta_y=enemy_head.y-my_head.y;
+        if(delta_x>0)dangerous_dir_list.push(1);
+        if(delta_x<0)dangerous_dir_list.push(3);
+        if(delta_y>0)dangerous_dir_list.push(2);
+        if(delta_y<0)dangerous_dir_list.push(0);
+        break;
+      }
+    }
     return dangerous_dir_list;
 }
+function differenceSet(a,b){
 
-function avoidObstacle(move_dir,head,mySnake,otherSnakeList,grid){
+  for(var i=0;i<b.length;i++){
+    if(a.includes(b[i]))a.splice(a.indexOf(b[i]),1);
+  }
+  return a;
+}
+function avoidObstacle(new_dir,move_dir,head,mySnake,otherSnakeList,grid){
+  console.log(move_dir);
   var dir_list=[0,1,2,3];
   dir_list.splice(dir_list.indexOf((move_dir+2)%4),1);
   console.log(dir_list);
-
   if(isObstacle(rightGrid(move_dir,head),mySnake,otherSnakeList,grid))
     {dir_list.splice(dir_list.indexOf((move_dir+1)%4),1);}
   if(isObstacle(leftGrid(move_dir,head),mySnake,otherSnakeList,grid))
     {dir_list.splice(dir_list.indexOf((move_dir+3)%4),1);}
   if(isObstacle(nextGrid(move_dir,head),mySnake,otherSnakeList,grid)){
     dir_list.splice(dir_list.indexOf(move_dir),1);
-    return dir_list[0];
   }
-  else return move_dir;
+  console.log(dir_list);
+  let dangerous_dir_list = senseEnemyHead(mySnake,otherSnakeList,grid);
+  console.log(dangerous_dir_list);
+  let afterSensing = differenceSet(dir_list,dangerous_dir_list);
+  console.log(afterSensing);
+  if(afterSensing.length==0)return new_dir;
+  return afterSensing.includes(new_dir)?new_dir:afterSensing[0];
 
 
 
@@ -386,11 +403,11 @@ app.post('/move', (request, response) => {
   if(path.length>0){
     new_dir = getDirection(head,path[0]);
   }
-    console.log("path:");
-    console.log(pathToVector(path,head));
-    console.log("=========================================")
 
-  move_dir = avoidObstacle(new_dir,head,mySnake,otherSnakeList,grid);
+  move_dir = avoidObstacle(new_dir,move_dir,head,mySnake,otherSnakeList,grid);
+  console.log("path:");
+  console.log(pathToVector(path,head));
+  console.log("=========================================")
   return response.json(updateMoveDirection(move_dir));
 })
 

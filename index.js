@@ -78,36 +78,63 @@ function rightGrid(move_dir,head){
   return nextGrid((move_dir+1)%4,head);
 }
 
+function leftGrid(move_dir,head){
+  return nextGrid((move_dir+3)%4,head);
+}
+
 
 /*********************************************
 * Determine if a node is out of the map (which is a wall).
 *********************************************/
-function isObstacle(a,mysnake,otherSnake,grid){
+function isObstacle(a,mySnake,otherSnakeList,grid){
 
   var ifObstacle = (a.x<0||a.x>grid.length-1||a.y<0||a.y>grid.length-1)?true:false;  //if wall
   /* if snake */
-  for(let j=0;j<otherSnake.length;j++){
-    let snake = otherSnake[j].body;
-    for (let i=0;i<snake.length;i++){
+  for(let j=0;j<otherSnakeList.length;j++){
+    let snake = otherSnakeList[j].body;
+    /*Note that snake.length-1 is important to predict the next move*/
+    for (let i=0;i<snake.length-1;i++){
       if(snake[i].x==a.x&&snake[i].y==a.y)ifObstacle=true;
     }
   }
-  for (var i=0;i<mysnake.length;i++){
-    if(mysnake[i].x==a.x&&mysnake[i].y==a.y)ifObstacle=true;
-  }
+  // for (var i=0;i<mySnake.length;i++){
+  //   if(mySnake[i].x==a.x&&mySnake[i].y==a.y)ifObstacle=true;
+  // }
   return ifObstacle;
 }
 
-function avoidObstacle(move_dir,head,mysnake,otherSnake,grid){
-  if(isObstacle(nextGrid(move_dir,head),mysnake,otherSnake,grid)) {
-    if(isObstacle(rightGrid(move_dir,head),mysnake,otherSnake,grid)){
-      return (move_dir+3)%4;
-    }else{
-      return (move_dir+1)%4;
+function senseEnemyHead(mySnake,otherSnakeList,grid){
+    var dangerous_dir_list=[];
+    for(var dir=0;dir<4;dir++){
+      var a = nextGrid(dir,nextGrid(dir,mySnake[0]));
+      var dir_dangerous = false;
+      for(let j=0;j<otherSnakeList.length;j++){
+        let snake = otherSnakeList[j].body;
+        if(snake[0].x==a.x&&snake[0].y==a.y)dir_dangerous=true;
+      }
+      if(dir_dangerous)dangerous_dir_list.push(dir);
     }
-  }else{
-    return move_dir;
+
+    return dangerous_dir_list;
+}
+
+function avoidObstacle(move_dir,head,mySnake,otherSnakeList,grid){
+  var dir_list=[0,1,2,3];
+  dir_list.splice(dir_list.indexOf((move_dir+2)%4),1);
+  console.log(dir_list);
+
+  if(isObstacle(rightGrid(move_dir,head),mySnake,otherSnakeList,grid))
+    {dir_list.splice(dir_list.indexOf((move_dir+1)%4),1);}
+  if(isObstacle(leftGrid(move_dir,head),mySnake,otherSnakeList,grid))
+    {dir_list.splice(dir_list.indexOf((move_dir+3)%4),1);}
+  if(isObstacle(nextGrid(move_dir,head),mySnake,otherSnakeList,grid)){
+    dir_list.splice(dir_list.indexOf(move_dir),1);
+    return dir_list[0];
   }
+  else return move_dir;
+
+
+
 }
 
 
@@ -202,13 +229,6 @@ function samePosition(a,b){
   return(a.x==b.x && a.y==b.y);
 }
 
-
-// function isWall(a,grid){
-//   return (a.x < 0 || a.x > grid.length-1|| a.y < 0 || a.y > grid.length-1);
-// }
-
-
-
 function printNeighbors(neighbors){
   for(var i = 0; i<neighbors.length-1; i++ ){
     console.log("neighbor: "+ i + "\t{x: "+neighbors[i].x +"\ty: "+neighbors[i].y+"}");
@@ -218,7 +238,7 @@ function printNeighbors(neighbors){
 /*********************************************
 * Main function to implement A* algorithm
 *********************************************/
-function search(start,end,mysnake,otherSnake,grid) {
+function search(start,end,mySnake,otherSnakeList,grid) {
   var openList = [];
   grid[start.x][start.y] = {
               x:start.x,
@@ -259,7 +279,7 @@ function search(start,end,mysnake,otherSnake,grid) {
 //    printNeighbors(neighbors);
       for(var i=0; i < neighbors.length; i++) {
           var neighbor = neighbors[i];
-          if(neighbor.state==0||isObstacle(neighbor,mysnake,otherSnake,grid)) {
+          if(neighbor.state==0||isObstacle(neighbor,mySnake,otherSnakeList,grid)) {
               neighbor.state==0;
               // Not a valid node to process, skip to next neighbor.
               continue;
@@ -342,14 +362,14 @@ var move_dir = 0; //initialize move direction
 app.post('/move', (request, response) => {
 
 
-  var mysnake = request.body.you.body;
-  var head = mysnake[0];
+  var mySnake = request.body.you.body;
+  var head = mySnake[0];
   var map_width = request.body.board.width;
   var map_height = request.body.board.height;
   var food_list = request.body.board.food;
   var enemy_list = request.body.board.snakes;
   var turn_num = request.body.turn;
-  var otherSnake = request.body.board.snakes;
+  var otherSnakeList = request.body.board.snakes;
 
   // Response data
   console.log("head:");
@@ -361,7 +381,7 @@ app.post('/move', (request, response) => {
 
   var grid = initGrid(map_width,map_height);
 
-  var path = search(head,the_food,mysnake,otherSnake,grid);
+  var path = search(head,the_food,mySnake,otherSnakeList,grid);
   var new_dir = move_dir;
   if(path.length>0){
     new_dir = getDirection(head,path[0]);
@@ -370,7 +390,7 @@ app.post('/move', (request, response) => {
     console.log(pathToVector(path,head));
     console.log("=========================================")
 
-  move_dir = avoidObstacle(new_dir,head,mysnake,otherSnake,grid);
+  move_dir = avoidObstacle(new_dir,head,mySnake,otherSnakeList,grid);
   return response.json(updateMoveDirection(move_dir));
 })
 

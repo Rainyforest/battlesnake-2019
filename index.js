@@ -92,7 +92,9 @@ function isObstacle(a,mysnake,otherSnake,grid){
       if(snake[i].x==a.x&&snake[i].y==a.y)ifObstacle=true;
     }
   }
-
+  for (var i=0;i<mysnake.length;i++){
+    if(mysnake[i].x==a.x&&mysnake[i].y==a.y)ifObstacle=true;
+  }
   return ifObstacle;
 }
 

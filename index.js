@@ -26,14 +26,23 @@ app.use(poweredByHandler)
 app.post('/start', (request, response) => {
   // NOTE: Do something here to start the game
   // Response data
+
+
   const data = {
-    color: '#000000',
+    color: getRandomColor(),
   }
   return response.json(data)
 })
 
 
-
+function getRandomColor() {
+  var letters = '0123456789ABCDEF'.split('');
+  var color = '#';
+  for (var i = 0; i < 6; i++ ) {
+  color += letters[Math.round(Math.random() * 15)];
+  }
+  return color;
+}
 
 /*********************************************
 * If about to hit the wall, turn right.
@@ -131,6 +140,7 @@ function differenceSet(a,b){
   return a;
 }
 function avoidObstacle(move_dir,mySnake,otherSnakeList,grid){
+  console.log("move dir: "+move_dir);
   var head = mySnake[0];
   // console.log("length"+mySnake.length);
   var last_dir = turn_num!=0?getDirection(mySnake[1],head):DEFAULT_DIR;
@@ -150,7 +160,8 @@ function avoidObstacle(move_dir,mySnake,otherSnakeList,grid){
   let dangerous_dir_list = senseEnemyHead(mySnake,otherSnakeList,grid);
   // console.log(dangerous_dir_list);
   let afterSensing = differenceSet(dir_list,dangerous_dir_list);
-  // console.log(afterSensing);
+  console.log("aftersensing options:");
+  console.log(afterSensing);
   if(afterSensing.length==0)return move_dir;
   return afterSensing.includes(move_dir)?move_dir:afterSensing[0];
 }
@@ -385,7 +396,7 @@ var turn_num = 0;
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
 
-
+  console.log("=========================================");
   var mySnake = request.body.you.body;
   var my_name = request.body.you.name;
   var my_health = request.body.you.health;
@@ -405,27 +416,25 @@ app.post('/move', (request, response) => {
   console.log("food: %o",the_food);
   var grid = initGrid(map_width,map_height);
   var temp_grid = initGrid(map_width,map_height);
+  var the_tail = {x:mySnake[mySnake.length-2].x,
+                  y:mySnake[mySnake.length-2].y};
+  console.log("the tail: %o",the_tail);
   var path_to_food = search(head,the_food,mySnake,otherSnakeList,grid);
+  var path_to_tail = search(head,the_tail,mySnake,otherSnakeList,grid);
   var food_flag = true;
   if(food_flag){
     if(path_to_food.length>0){
       move_dir = getDirection(head,path_to_food[0]);
-    }else{
-      console.log("-----chase tail");
-      var tail_index=mySnake.length-1;
-      var path_to_tail = search(head,mySnake[tail_index],mySnake,otherSnakeList,grid);
-      if(path_to_tail.length>0){
-        console.log("-----tail route exist");
-        move_dir = getDirection(head,path_to_tail[0]);
-      }
+      console.log("path to food:");
+      console.log(pathToVector(path_to_food,head));
+    }else if(path_to_tail.length>0){
+      move_dir = getDirection(head,path_to_tail[0]);
+      console.log("path to tail:");
+      console.log(pathToVector(path_to_tail,head));
+    //  }
     }
   }else move_dir = search(head,randomGrid(grid),mySnake,otherSnakeList,grid);
-
-
   move_dir = avoidObstacle(move_dir,mySnake,otherSnakeList,grid);
-  console.log("path to food:");
-  console.log(pathToVector(path_to_food,head));
-  console.log("=========================================")
   return response.json(updateMoveDirection(move_dir));
 })
 

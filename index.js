@@ -119,7 +119,7 @@ function senseEnemyHead(mySnake,otherSnakeList,grid){
       let my_head  = mySnake[0];
 
 
-      if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>mySnake.length){
+      if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>=mySnake.length){
 
         var delta_x=enemy_head.x-my_head.x;
         var delta_y=enemy_head.y-my_head.y;
@@ -416,8 +416,8 @@ app.post('/move', (request, response) => {
   console.log("food: %o",the_food);
   var grid = initGrid(map_width,map_height);
   var temp_grid = initGrid(map_width,map_height);
-  var the_tail = {x:mySnake[mySnake.length-2].x,
-                  y:mySnake[mySnake.length-2].y};
+  var the_tail = {x:mySnake[mySnake.length-1].x,
+                  y:mySnake[mySnake.length-1].y};
   console.log("the tail: %o",the_tail);
   var path_to_food = search(head,the_food,mySnake,otherSnakeList,grid);
   var path_to_tail = search(head,the_tail,mySnake,otherSnakeList,grid);

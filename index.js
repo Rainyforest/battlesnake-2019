@@ -119,7 +119,7 @@ function senseEnemyHead(mySnake,otherSnakeList,grid){
       let my_head  = mySnake[0];
 
 
-      if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>=mySnake.length){
+      if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>mySnake.length){
 
         var delta_x=enemy_head.x-my_head.x;
         var delta_y=enemy_head.y-my_head.y;
@@ -298,13 +298,10 @@ function search(start,end,mySnake,otherSnakeList,grid) {
           }
           return path.reverse();
       }
-//    console.log('*****************');
       // Normal case -- move currentNode from open to closed, process each of its neighbors.
       currentNode.state = 0;
       // Find all neighbors for the current node.
       var neighbors = getNeighbors(currentNode,grid);
-//    console.log("neighbors:");
-//    printNeighbors(neighbors);
       for(var i=0; i < neighbors.length; i++) {
           var neighbor = neighbors[i];
           if(neighbor.state==0||isObstacle(neighbor,mySnake,otherSnakeList,grid)) {
@@ -447,8 +444,6 @@ app.post('/move', (request, response) => {
 
 app.post('/end', (request, response) => {
   // NOTE: Any cleanup when a game is complete.
-
-  //console.log("################################################################");
   return response.json({})
 })
 

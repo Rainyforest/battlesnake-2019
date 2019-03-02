@@ -481,12 +481,14 @@ function BFSgetNeighbors(node,snake_list,visited) {
     }
     return neighbor_list;
 }
-function isFoodAvailable(food,head,snake_list){
+function isFoodAvailable(food,mySnake,snake_list){
+  var head = mySnake[0];
   var foodAvailable = true;
   var food_dis = getDistance(head,food);
   for(let j=0;j<snake_list.length;j++){
     let enemy_head = snake_list[j].body[0];
       if(getDistance(enemy_head,food)<food_dis)foodAvailable = false;
+      if(getDistance(enemy_head,food)==food_dis && snake_list[j].body.length>=mySnake.length)foodAvailable = false;
   }
   return foodAvailable;
 }
@@ -517,9 +519,9 @@ app.post('/move', (request, response) => {
 
 
   var sorted_food_list = sortFoodList(food_list,head);
-  var the_food = sorted_food_list.length>0?sorted_food_list[0]:head;
+  var the_food = sorted_food_list.length>1?sorted_food_list[0]:head;
   for(var i=0;i<sorted_food_list.length;i++){
-    if(isFoodAvailable(sorted_food_list[i],head,snake_list)){
+    if(isFoodAvailable(sorted_food_list[i],mySnake,snake_list)){
       the_food = sorted_food_list[i];
       break;
     }

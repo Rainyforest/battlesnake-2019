@@ -514,7 +514,6 @@ app.post('/move', (request, response) => {
   console.log("the tail: %o",the_tail);
   var path_to_food = aStarSearch(head,the_food,mySnake,otherSnakeList,grid);
   var path_to_tail = aStarSearch(head,the_tail,mySnake,otherSnakeList,grid);
-  var path_to_random = aStarSearch(head,randomGrid(map_len),mySnake,otherSnakeList,grid);
   var food_flag = true;
   if(food_flag){
     if(path_to_food.length>0){
@@ -529,6 +528,7 @@ app.post('/move', (request, response) => {
     console.log("path to tail:");
     console.log(pathToVector(path_to_tail,head));
   }else{
+    var path_to_random = aStarSearch(head,randomGrid(map_len),mySnake,otherSnakeList,grid);
     move_dir = getDirection(head,path_to_random[0]);
     console.log("path to random:");
     console.log(pathToVector(path_to_random,head));

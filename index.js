@@ -119,7 +119,7 @@ function senseEnemyHead(mySnake,otherSnakeList,grid){
       let my_head  = mySnake[0];
 
 
-      if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>mySnake.length){
+      if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>=mySnake.length){
 
         var delta_x=enemy_head.x-my_head.x;
         var delta_y=enemy_head.y-my_head.y;

@@ -519,7 +519,7 @@ app.post('/move', (request, response) => {
 
 
   var sorted_food_list = sortFoodList(food_list,head);
-  var the_food = sorted_food_list.length>1?sorted_food_list[0]:head;
+  var the_food = sorted_food_list.length>0?sorted_food_list[0]:head;
   for(var i=0;i<sorted_food_list.length;i++){
     if(isFoodAvailable(sorted_food_list[i],mySnake,snake_list)){
       the_food = sorted_food_list[i];

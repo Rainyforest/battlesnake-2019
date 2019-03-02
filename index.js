@@ -290,7 +290,6 @@ function search(start,end,mySnake,otherSnakeList,grid) {
       openList.splice(low_index, 1); // remove current node from openList.
       //End case -- result has been found, return the traced path.
       if(samePosition(currentNode,end)) {
-//        console.log("FINISHHHHHHHHH");
           var curr = currentNode;
           var path = [];
           while(curr.parent) {
@@ -341,6 +340,7 @@ function search(start,end,mySnake,otherSnakeList,grid) {
   // No result was found - empty array signifies failure to find path.
   return [];
 }
+
 function pathToVector(path,head){
   var vector_list = [];
   path.unshift(head);
@@ -349,6 +349,7 @@ function pathToVector(path,head){
   }
   return vector_list;
 }
+
 /*********************************************
 * get four neighbors of a node. (could be simplified later.)
 *********************************************/
@@ -421,19 +422,27 @@ app.post('/move', (request, response) => {
   console.log("the tail: %o",the_tail);
   var path_to_food = search(head,the_food,mySnake,otherSnakeList,grid);
   var path_to_tail = search(head,the_tail,mySnake,otherSnakeList,grid);
+  var path_to_random = search(head,randomGrid(grid),mySnake,otherSnakeList,grid);
   var food_flag = true;
   if(food_flag){
     if(path_to_food.length>0){
       move_dir = getDirection(head,path_to_food[0]);
-      console.log("path to food:");
-      console.log(pathToVector(path_to_food,head));
+      console.log("Find food......");
+
     }else if(path_to_tail.length>0){
       move_dir = getDirection(head,path_to_tail[0]);
-      console.log("path to tail:");
-      console.log(pathToVector(path_to_tail,head));
+      console.log("Find tail......");
     //  }
     }
-  }else move_dir = search(head,randomGrid(grid),mySnake,otherSnakeList,grid);
+    console.log("path to food:");
+    console.log(pathToVector(path_to_food,head));
+    console.log("path to tail:");
+    console.log(pathToVector(path_to_tail,head));
+  }else {
+    move_dir = getDirection(head,path_to_random[0]);
+    console.log("path to random:");
+    console.log(pathToVector(path_to_random,head));
+  }
   move_dir = avoidObstacle(move_dir,mySnake,otherSnakeList,grid);
   return response.json(updateMoveDirection(move_dir));
 })

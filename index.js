@@ -31,7 +31,6 @@ app.post('/start', (request, response) => {
   return response.json(data)
 })
 
-
 function getRandomColor() {
   var letters = '0123456789ABCDEF'.split('');
   var color = '#';
@@ -117,7 +116,7 @@ function leftGrid(move_dir,head){
 function closeAreaMethod(mySnake,otherSnakeList,map_len){
   var dir_list=[];
   var head = mySnake[0];
-  var last_dir = turn_num!=0?getDirection(mySnake[1],head):DEFAULT_DIR;
+  var last_dir = (turn_num!=0&&mySnake.length>1)?getDirection(mySnake[1],head):DEFAULT_DIR;
   var right_area = BFSfindCloseArea(rightGrid(last_dir,head),otherSnakeList,map_len);
   var left_area = BFSfindCloseArea(leftGrid(last_dir,head),otherSnakeList,map_len);
   var front_area = BFSfindCloseArea(nextGrid(last_dir,head),otherSnakeList,map_len);
@@ -219,7 +218,7 @@ function intersectionSet(a,b){
 function avoidObstacle(move_dir,mySnake,otherSnakeList,map_len){
   console.log("move dir: "+move_dir);
   var head = mySnake[0];
-  var last_dir = turn_num!=0?getDirection(mySnake[1],head):DEFAULT_DIR;
+  var last_dir = (turn_num!=0&&mySnake.length>1)?getDirection(mySnake[1],head):DEFAULT_DIR;
   var dir_list=[0,1,2,3];
   /* Based on move_dir*/
   dir_list.splice(dir_list.indexOf((last_dir+2)%4),1); //remove opposite direction
@@ -489,8 +488,8 @@ var move_dir = DEFAULT_DIR; //initialize move direction
 var turn_num = 0;
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
-
   console.log("=========================================");
+  // console.log(request.body);
   var mySnake = request.body.you.body;
   var my_name = request.body.you.name;
   var my_health = request.body.you.health;

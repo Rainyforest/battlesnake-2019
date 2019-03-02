@@ -408,9 +408,9 @@ app.post('/move', (request, response) => {
   var food_list = request.body.board.food;
   var enemy_list = request.body.board.snakes;
   turn_num = request.body.turn; //update turn number
-  console.log("turn: "+turn_num);
+  console.log("turn: " + turn_num);
   var otherSnakeList = request.body.board.snakes;
-  console.log("name: "+my_name);
+  console.log("name: " + my_name);
   // Response data
   console.log("head: %o",head);
   var the_food = findNearestFood(food_list,head);
@@ -428,11 +428,9 @@ app.post('/move', (request, response) => {
     if(path_to_food.length>0){
       move_dir = getDirection(head,path_to_food[0]);
       console.log("Find food......");
-
     }else if(path_to_tail.length>0){
       move_dir = getDirection(head,path_to_tail[0]);
       console.log("Find tail......");
-    //  }
     }
     console.log("path to food:");
     console.log(pathToVector(path_to_food,head));

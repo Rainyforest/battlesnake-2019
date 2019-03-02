@@ -15,7 +15,6 @@ const DEFAULT_DIR = 0;
 app.set('port', (process.env.PORT || 9001))
 
 app.enable('verbose errors')
-
 app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(poweredByHandler)
@@ -26,8 +25,6 @@ app.use(poweredByHandler)
 app.post('/start', (request, response) => {
   // NOTE: Do something here to start the game
   // Response data
-
-
   const data = {
     color: getRandomColor(),
   }
@@ -47,6 +44,31 @@ function getRandomColor() {
 /*********************************************
 * If about to hit the wall, turn right.
 *********************************************/
+function Queue(){
+	let items = [];
+	this.enqueue = function(element) {
+		items.push(element);
+	};
+	this.dequeue = function() {
+		return items.shift();
+	};
+	this.front = function() {
+		return items[0];
+	};
+	this.isEmpty = function() {
+		return items.length === 0;
+	};
+	this.clear = function() {
+		items = [];
+	};
+	this.size = function() {
+		return items.length;
+	};
+	this.print = function() {
+		// 列印出佇列內容
+		console.log(items.toString());
+	}
+}
 
 function nextGrid(move_dir,head){
   var next;
@@ -79,6 +101,7 @@ function nextGrid(move_dir,head){
   }
   return next;
 }
+
 function getDistance(a,b){
   return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 }
@@ -91,13 +114,68 @@ function leftGrid(move_dir,head){
   return nextGrid((move_dir+3)%4,head);
 }
 
+function closeAreaMethod(mySnake,otherSnakeList,map_len){
+  var dir_list=[];
+  var head = mySnake[0];
+  var last_dir = turn_num!=0?getDirection(mySnake[1],head):DEFAULT_DIR;
+  var right_area = BFSfindCloseArea(rightGrid(last_dir,head),otherSnakeList,map_len);
+  var left_area = BFSfindCloseArea(leftGrid(last_dir,head),otherSnakeList,map_len);
+  var front_area = BFSfindCloseArea(nextGrid(last_dir,head),otherSnakeList,map_len);
+  var max_area = Math.max(left_area,right_area,front_area);
+  if(left_area == max_area)dir_list.push((last_dir+3)%4);
+  if(right_area == max_area)dir_list.push((last_dir+1)%4);
+  if(front_area == max_area)dir_list.push(last_dir);
+  console.log("left: "+left_area);
+  console.log("right: "+right_area);
+  console.log("front: "+front_area);
+  return dir_list;
+}
+
+function BFSfindCloseArea(start,otherSnakeList,map_len){
+   if(isObstacle(start,otherSnakeList,map_len))return 0;
+   var visit_count = 0;
+   var visited = [];
+   for(var i = 0 ; i < map_len; i++) {
+     visited[i] = [];
+   }
+   for(var x = 0 ; x < map_len; x++) {
+       for(var y = 0; y < map_len; y++) {
+           visited[x][y] = false;
+       }
+   }
+   // Create a Queue and add our initial node in it
+   const q = new Queue();
+   //let explored = new Set();
+   q.enqueue(start);
+   // Mark the first node as explored explored.
+   visited[start.x][start.y]=true;
+   // We'll continue till our queue gets empty
+   while (!q.isEmpty()) {
+      let t = q.dequeue();
+      visit_count++;
+      // Log every element that comes out of the Queue
+      //console.log(t);
+      // 1. In the edges object, we search for nodes this node is directly connected to.
+      // 2. We filter out the nodes that have already been explored.
+      // 3. Then we mark each unexplored node as explored and add it to the queue.
+      BFSgetNeighbors(t,otherSnakeList,visited)
+      .filter(n => visited[n.x][n.y]==false)
+      .forEach(n => {
+         visited[n.x][n.y] = true;
+         if(!isObstacle(n,otherSnakeList,map_len)){
+           q.enqueue(n);
+         }
+      });
+    }
+    return visit_count;
+}
 
 /*********************************************
 * Determine if a node is out of the map (which is a wall).
 *********************************************/
-function isObstacle(a,mySnake,otherSnakeList,grid){
+function isObstacle(a,otherSnakeList,map_len){
 
-  var ifObstacle = (a.x<0||a.x>grid.length-1||a.y<0||a.y>grid.length-1)?true:false;  //if wall
+  var ifObstacle = (a.x<0||a.x>map_len-1||a.y<0||a.y>map_len-1)?true:false;  //if wall
   /* if snake */
   for(let j=0;j<otherSnakeList.length;j++){
     let snake = otherSnakeList[j].body;
@@ -106,9 +184,6 @@ function isObstacle(a,mySnake,otherSnakeList,grid){
       if(snake[i].x==a.x&&snake[i].y==a.y)ifObstacle=true;
     }
   }
-  // for (var i=0;i<mySnake.length;i++){
-  //   if(mySnake[i].x==a.x&&mySnake[i].y==a.y)ifObstacle=true;
-  // }
   return ifObstacle;
 }
 
@@ -117,8 +192,6 @@ function senseEnemyHead(mySnake,otherSnakeList,grid){
     for(let j=0;j<otherSnakeList.length;j++){
       let enemy_head = otherSnakeList[j].body[0];
       let my_head  = mySnake[0];
-
-
       if(getDistance(my_head,enemy_head)==2 && otherSnakeList[j].body.length>=mySnake.length){
 
         var delta_x=enemy_head.x-my_head.x;
@@ -132,40 +205,47 @@ function senseEnemyHead(mySnake,otherSnakeList,grid){
     }
     return dangerous_dir_list;
 }
-function differenceSet(a,b){
 
+function differenceSet(a,b){
   for(var i=0;i<b.length;i++){
     if(a.includes(b[i]))a.splice(a.indexOf(b[i]),1);
   }
   return a;
 }
-function avoidObstacle(move_dir,mySnake,otherSnakeList,grid){
+function intersectionSet(a,b){
+  return a.filter(function(v){ return b.indexOf(v) > -1 })
+}
+
+function avoidObstacle(move_dir,mySnake,otherSnakeList,map_len){
   console.log("move dir: "+move_dir);
   var head = mySnake[0];
-  // console.log("length"+mySnake.length);
   var last_dir = turn_num!=0?getDirection(mySnake[1],head):DEFAULT_DIR;
-  // console.log(last_dir);
-  // console.log("--->>");
   var dir_list=[0,1,2,3];
-  dir_list.splice(dir_list.indexOf((last_dir+2)%4),1);
-  // console.log(dir_list);
-  if(isObstacle(rightGrid(last_dir,head),mySnake,otherSnakeList,grid))
-    {dir_list.splice(dir_list.indexOf((last_dir+1)%4),1);}
-  if(isObstacle(leftGrid(last_dir,head),mySnake,otherSnakeList,grid))
-    {dir_list.splice(dir_list.indexOf((last_dir+3)%4),1);}
-  if(isObstacle(nextGrid(last_dir,head),mySnake,otherSnakeList,grid)){
-    dir_list.splice(dir_list.indexOf(last_dir),1);
+  /* Based on move_dir*/
+  dir_list.splice(dir_list.indexOf((last_dir+2)%4),1); //remove opposite direction
+
+  if(isObstacle(rightGrid(last_dir,head),otherSnakeList,map_len))
+    {dir_list.splice(dir_list.indexOf((last_dir+1)%4),1);}  //check right
+  if(isObstacle(leftGrid(last_dir,head),otherSnakeList,map_len))
+    {dir_list.splice(dir_list.indexOf((last_dir+3)%4),1);}  //check left
+  if(isObstacle(nextGrid(last_dir,head),otherSnakeList,map_len)){
+    dir_list.splice(dir_list.indexOf(last_dir),1);          //check front
   }
-  // console.log(dir_list);
-  let dangerous_dir_list = senseEnemyHead(mySnake,otherSnakeList,grid);
-  // console.log(dangerous_dir_list);
+  let dangerous_dir_list = senseEnemyHead(mySnake,otherSnakeList,map_len);
   let afterSensing = differenceSet(dir_list,dangerous_dir_list);
   console.log("aftersensing options:");
   console.log(afterSensing);
   if(afterSensing.length==0)return move_dir;
-  return afterSensing.includes(move_dir)?move_dir:afterSensing[0];
-}
+  var area_options = closeAreaMethod(mySnake,otherSnakeList,map_len);
+  console.log("area options:");
+  console.log(area_options);
 
+  var final_set = intersectionSet(afterSensing,area_options)
+  console.log("final options:");
+  console.log(final_set);
+  if(final_set.length!=0)return final_set.includes(move_dir)?move_dir:final_set[0];
+  else return afterSensing.includes(move_dir)?move_dir:afterSensing[0];
+}
 
 /*********************************************
 * Convert number 0 - 3 to direction [up, right, down, left] respectively
@@ -206,17 +286,16 @@ function findNearestFood(food_list,head){
   return the_food;
 }
 
-
 /*********************************************
 * Initial the map as two-demensional node array grid.
 *********************************************/
-function initGrid(map_width,map_height) {
+function initGrid(map_len) {
   var grid=[];
-  for(var x = 0 ; x < map_width; x++) {
+  for(var x = 0 ; x < map_len; x++) {
     grid[x] = [];
   }
-  for(var x = 0 ; x < map_width; x++) {
-      for(var y = 0; y < map_height; y++) {
+  for(var x = 0 ; x < map_len; x++) {
+      for(var y = 0; y < map_len; y++) {
           grid[x][y]={
                       x:x,
                       y:y,
@@ -231,7 +310,6 @@ function initGrid(map_width,map_height) {
   }
   return grid;
 }
-
 
 /*********************************************
 * Get a direction from node a->b, range 0 - 3.
@@ -250,7 +328,6 @@ function getDirection(a,b){
   }
 }
 
-
 /*********************************************
 * Determine if two nodes represent the same position.
 *********************************************/
@@ -267,7 +344,7 @@ function printNeighbors(neighbors){
 /*********************************************
 * Main function to implement A* algorithm
 *********************************************/
-function search(start,end,mySnake,otherSnakeList,grid) {
+function aStarSearch(start,end,mySnake,otherSnakeList,grid) {
   var openList = [];
   grid[start.x][start.y] = {
               x:start.x,
@@ -301,10 +378,10 @@ function search(start,end,mySnake,otherSnakeList,grid) {
       // Normal case -- move currentNode from open to closed, process each of its neighbors.
       currentNode.state = 0;
       // Find all neighbors for the current node.
-      var neighbors = getNeighbors(currentNode,grid);
+      var neighbors = aStarGetNeighbors(currentNode,grid);
       for(var i=0; i < neighbors.length; i++) {
           var neighbor = neighbors[i];
-          if(neighbor.state==0||isObstacle(neighbor,mySnake,otherSnakeList,grid)) {
+          if(neighbor.state==0||isObstacle(neighbor,otherSnakeList,grid.length)) {
               neighbor.state==0;
               // Not a valid node to process, skip to next neighbor.
               continue;
@@ -350,7 +427,7 @@ function pathToVector(path,head){
 /*********************************************
 * get four neighbors of a node. (could be simplified later.)
 *********************************************/
-function getNeighbors(node,grid) {
+function aStarGetNeighbors(node,grid) {
     var neighbor_list = [];
     var x = node.x;
     var y = node.y;
@@ -360,33 +437,52 @@ function getNeighbors(node,grid) {
           neighbor_list.push(grid[x-1][y]);
       }
     }
-
     // Right
     if(x<grid.length-1){
       if(grid[x+1][y].state!=0 ) {
           neighbor_list.push(grid[x+1][y]);
       }
     }
-
     // Up
     if(y>0){
       if(grid[x][y-1].state!=0 ) {
           neighbor_list.push(grid[x][y-1]);
       }
     }
-
     // Down
     if(y<grid.length-1){
       if(grid[x][y+1].state!=0 ) {
           neighbor_list.push(grid[x][y+1]);
       }
     }
-
     return neighbor_list;
 }
-function randomGrid(grid){
-  return {x:Math.random()*grid.length,
-          y:Math.random()*grid.length
+
+function BFSgetNeighbors(node,otherSnakeList,visited) {
+    var neighbor_list = [];
+    var x = node.x;
+    var y = node.y;
+  // Left
+    if(x>0) {
+        neighbor_list.push({x:x-1,y:y});
+    }
+  // Right
+    if(x<visited.length-1) {
+        neighbor_list.push({x:x+1,y:y});
+    }
+  // Up
+    if(y>0) {
+        neighbor_list.push({x:x,y:y-1});
+    }
+  // Down
+    if(y<visited.length-1) {
+        neighbor_list.push({x:x,y:y+1});
+    }
+    return neighbor_list;
+}
+function randomGrid(map_len){
+  return {x:Math.random()*map_len,
+          y:Math.random()*map_len
          };
 }
 var move_dir = DEFAULT_DIR; //initialize move direction
@@ -400,8 +496,7 @@ app.post('/move', (request, response) => {
   var my_health = request.body.you.health;
 
   var head = mySnake[0];
-  var map_width = request.body.board.width;
-  var map_height = request.body.board.height;
+  var map_len = request.body.board.width;
   var food_list = request.body.board.food;
   var enemy_list = request.body.board.snakes;
   turn_num = request.body.turn; //update turn number
@@ -412,14 +507,14 @@ app.post('/move', (request, response) => {
   console.log("head: %o",head);
   var the_food = findNearestFood(food_list,head);
   console.log("food: %o",the_food);
-  var grid = initGrid(map_width,map_height);
-  var temp_grid = initGrid(map_width,map_height);
+  var grid = initGrid(map_len);
+  var temp_grid = initGrid(map_len);
   var the_tail = {x:mySnake[mySnake.length-1].x,
                   y:mySnake[mySnake.length-1].y};
   console.log("the tail: %o",the_tail);
-  var path_to_food = search(head,the_food,mySnake,otherSnakeList,grid);
-  var path_to_tail = search(head,the_tail,mySnake,otherSnakeList,grid);
-  var path_to_random = search(head,randomGrid(grid),mySnake,otherSnakeList,grid);
+  var path_to_food = aStarSearch(head,the_food,mySnake,otherSnakeList,grid);
+  var path_to_tail = aStarSearch(head,the_tail,mySnake,otherSnakeList,grid);
+  var path_to_random = aStarSearch(head,randomGrid(map_len),mySnake,otherSnakeList,grid);
   var food_flag = true;
   if(food_flag){
     if(path_to_food.length>0){
@@ -433,12 +528,12 @@ app.post('/move', (request, response) => {
     console.log(pathToVector(path_to_food,head));
     console.log("path to tail:");
     console.log(pathToVector(path_to_tail,head));
-  }else {
+  }else{
     move_dir = getDirection(head,path_to_random[0]);
     console.log("path to random:");
     console.log(pathToVector(path_to_random,head));
   }
-  move_dir = avoidObstacle(move_dir,mySnake,otherSnakeList,grid);
+  move_dir = avoidObstacle(move_dir,mySnake,otherSnakeList,map_len);
   return response.json(updateMoveDirection(move_dir));
 })
 
@@ -460,7 +555,10 @@ app.use(genericErrorHandler)
 app.listen(app.get('port'), () => {
   console.log('Server listening on port %s', app.get('port'))
 })
+
 /*******************************************************
 Reference:
   Astar algorithm in javascript: https://briangrinstead.com/blog/astar-search-algorithm-in-javascript/
+  Breadth first search: https://www.tutorialspoint.com/Breadth-first-search-traversal-in-Javascript
+  Queue implementation: https://blog.kdchang.cc/2016/09/11/javascript-data-structure-algorithm-queue/
 *******************************************************/
